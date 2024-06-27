@@ -59,6 +59,9 @@ func (cr *ChatRoom) run() {
 				close(client.send)
 			}
 		case message := <-cr.broadcast:
+			// 将消息写入日志文件
+			cr.logMessage(message)
+
 			for client := range cr.clients {
 				select {
 				case client.send <- encodeMessage(message):
