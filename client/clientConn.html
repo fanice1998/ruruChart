@@ -15,7 +15,6 @@
         }
 
         #login,
-        #room-list,
         #chat {
             background-color: #3f3f3f;
             border-radius: 5px;
@@ -23,7 +22,6 @@
             margin-bottom: 20px;
         }
 
-        #room-list,
         #chat {
             display: none;
         }
@@ -59,24 +57,8 @@
             margin-bottom: 10px;
         }
 
-        #rooms {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        #rooms li {
-            cursor: pointer;
-            padding: 10px;
-            background-color: #4f4f4f;
-            margin-bottom: 5px;
-            border-radius: 3px;
-        }
-
-        #rooms li:hover {
-            background-color: #5f5f5f;
-        }
-
         #message-input {
+            width: calc(100% - 22px);
             height: 60px;
             resize: none;
         }
@@ -87,46 +69,40 @@
     <div id="login">
         <h2>Enter your username</h2>
         <input type="text" id="username-input" placeholder="Username">
-        <button onclick="setUsername()">Set Username</button>
-    </div>
-
-    <div id="room-list">
-        <h2>Available Rooms:</h2>
-        <ul id="rooms"></ul>
+        <button onclick="setUsername()">Join Chat</button>
     </div>
 
     <div id="chat">
-        <h2 id="room-name"></h2>
+        <h2>Chat Room</h2>
         <div id="messages"></div>
-        <textarea id="message-input" placeholder="Type a message... (Shift+Enter for new line)"></textarea>
-        <button onclick="sendMessage()">Send</button>
+        <textarea id="message-input" placeholder="Type a message... (Press Enter to send)"></textarea>
     </div>
 
     <script>
         let socket;
-        let currentRoom;
         let username;
 
         function setUsername() {
             username = document.getElementById('username-input').value.trim();
             if (username) {
                 document.getElementById('login').style.display = 'none';
+                document.getElementById('chat').style.display = 'block';
                 connect();
             }
         }
 
         function connect() {
-            socket = new WebSocket('ws://localhost:8080/ws');
+            socket = new WebSocket('ws://192.168.66.137:8080/ws');
 
             socket.onopen = function (e) {
                 console.log("Connection established");
+                // Join the chat room immediately after connection
+                socket.send(JSON.stringify({ type: 'join', username: username }));
             };
 
             socket.onmessage = function (event) {
                 const data = JSON.parse(event.data);
-                if (data.type === 'rooms') {
-                    displayRooms(JSON.parse(data.content));
-                } else if (data.type === 'message') {
+                if (data.type === 'message') {
                     displayMessage(data);
                 }
             };
@@ -144,30 +120,11 @@
             };
         }
 
-        function displayRooms(rooms) {
-            const roomList = document.getElementById('rooms');
-            rooms.forEach(room => {
-                const li = document.createElement('li');
-                li.textContent = room;
-                li.onclick = () => joinRoom(room);
-                roomList.appendChild(li);
-            });
-            document.getElementById('room-list').style.display = 'block';
-        }
-
-        function joinRoom(room) {
-            currentRoom = room;
-            socket.send(JSON.stringify({ type: 'join', room: room, username: username }));
-            document.getElementById('room-list').style.display = 'none';
-            document.getElementById('chat').style.display = 'block';
-            document.getElementById('room-name').textContent = `Room: ${room}`;
-        }
-
         function sendMessage() {
             const messageInput = document.getElementById('message-input');
             const message = messageInput.value.trim();
             if (message) {
-                socket.send(JSON.stringify({ type: 'message', room: currentRoom, content: message }));
+                socket.send(JSON.stringify({ type: 'message', content: message }));
                 messageInput.value = '';
             }
         }

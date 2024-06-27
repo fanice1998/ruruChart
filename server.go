@@ -160,8 +160,9 @@ func main() {
 	http.HandleFunc("/ws", handleWebSocket)
 
 	// 添加静态文件服务
-	fs := http.FileServer(http.Dir("client"))
-	http.Handle("/", fs)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "client/clientConn.html")
+	})
 
 	log.Println("Server is starting on :8080")
 	err := http.ListenAndServe(":8080", nil)
