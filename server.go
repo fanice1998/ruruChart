@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/websocket"
 )
@@ -33,6 +34,7 @@ type ChatRoom struct {
 	broadcast  chan Message
 	register   chan *Client
 	unregister chan *Client
+	logFile    *os.File
 }
 
 func newChatRoom() *ChatRoom {
@@ -45,6 +47,8 @@ func newChatRoom() *ChatRoom {
 }
 
 func (cr *ChatRoom) run() {
+	defer cr.logFile.Close()
+
 	for {
 		select {
 		case client := <-cr.register:
@@ -64,6 +68,24 @@ func (cr *ChatRoom) run() {
 				}
 			}
 		}
+	}
+}
+
+func (cr *ChatRoom) logMessage(msg Message) {
+	encoded, err := json.Marshal(msg)
+	if err != nil {
+		log.Println("Error encoding message:", err)
+		return
+	}
+
+	_, err = cr.logFile.Write(encoded)
+	if err != nil {
+		log.Println("Error writing to log file:", err)
+		return
+	}
+	_, err = cr.logFile.WriteString("\n")
+	if err != nil {
+		log.Panicln("Error writing newline to log file:", err)
 	}
 }
 
