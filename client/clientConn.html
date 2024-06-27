@@ -6,63 +6,129 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebSocket Chat</title>
     <style>
-        #chat-box {
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2f2f2f;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #login,
+        #room-list,
+        #chat {
+            background-color: #3f3f3f;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        #room-list,
+        #chat {
+            display: none;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        input[type="text"],
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 3px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #messages {
             height: 300px;
-            overflow-y: scroll;
-            border: 1px solid #ccc;
+            overflow-y: auto;
+            border: 1px solid #555;
             padding: 10px;
             margin-bottom: 10px;
         }
 
-        #room-list {
-            display: none;
+        #rooms {
+            list-style-type: none;
+            padding: 0;
         }
 
-        #chat-interface {
-            display: none;
+        #rooms li {
+            cursor: pointer;
+            padding: 10px;
+            background-color: #4f4f4f;
+            margin-bottom: 5px;
+            border-radius: 3px;
+        }
+
+        #rooms li:hover {
+            background-color: #5f5f5f;
+        }
+
+        #message-input {
+            height: 60px;
+            resize: none;
         }
     </style>
 </head>
 
 <body>
-    <div id="username-input">
-        <input type="text" id="username" placeholder="Enter your username">
+    <div id="login">
+        <h2>Enter your username</h2>
+        <input type="text" id="username-input" placeholder="Username">
         <button onclick="setUsername()">Set Username</button>
     </div>
+
     <div id="room-list">
-        <h2>Choose a room:</h2>
+        <h2>Available Rooms:</h2>
         <ul id="rooms"></ul>
     </div>
-    <div id="chat-interface">
+
+    <div id="chat">
         <h2 id="room-name"></h2>
-        <div id="chat-box"></div>
-        <input type="text" id="message-input" placeholder="Type a message...">
+        <div id="messages"></div>
+        <textarea id="message-input" placeholder="Type a message... (Shift+Enter for new line)"></textarea>
         <button onclick="sendMessage()">Send</button>
     </div>
 
     <script>
         let socket;
-        let currentRoom = '';
-        let username = '';
+        let currentRoom;
+        let username;
 
         function setUsername() {
-            username = document.getElementById('username').value;
+            username = document.getElementById('username-input').value.trim();
             if (username) {
-                document.getElementById('username-input').style.display = 'none';
-                connectWebSocket();
+                document.getElementById('login').style.display = 'none';
+                connect();
             }
         }
 
-        function connectWebSocket() {
-            socket = new WebSocket(`ws://localhost:8080/ws?username=${encodeURIComponent(username)}`);
+        function connect() {
+            socket = new WebSocket('ws://localhost:8080/ws');
 
             socket.onopen = function (e) {
                 console.log("Connection established");
             };
 
             socket.onmessage = function (event) {
-                const message = JSON.parse(event.data);
-                handleMessage(message);
+                const data = JSON.parse(event.data);
+                if (data.type === 'rooms') {
+                    displayRooms(JSON.parse(data.content));
+                } else if (data.type === 'message') {
+                    displayMessage(data);
+                }
             };
 
             socket.onclose = function (event) {
@@ -74,38 +140,16 @@
             };
 
             socket.onerror = function (error) {
-                console.log(`[error] ${error.message}`);
+                console.log(`WebSocket error: ${error.message}`);
             };
         }
 
-        function handleMessage(message) {
-            switch (message.type) {
-                case 'roomList':
-                    displayRoomList(message.content);
-                    break;
-                case 'chat':
-                    displayChatMessage(message);
-                    break;
-                case 'system':
-                    if (message.content === "You have left the room. Please choose another room.") {
-                        currentRoom = '';
-                        document.getElementById('chat-interface').style.display = 'none';
-                        document.getElementById('room-list').style.display = 'block';
-                    }
-                    displaySystemMessage(message.content);
-                    break;
-            }
-        }
-
-        function displayRoomList(rooms) {
+        function displayRooms(rooms) {
             const roomList = document.getElementById('rooms');
-            roomList.innerHTML = '';
             rooms.forEach(room => {
                 const li = document.createElement('li');
-                const button = document.createElement('button');
-                button.textContent = room;
-                button.onclick = () => joinRoom(room);
-                li.appendChild(button);
+                li.textContent = room;
+                li.onclick = () => joinRoom(room);
                 roomList.appendChild(li);
             });
             document.getElementById('room-list').style.display = 'block';
@@ -113,41 +157,32 @@
 
         function joinRoom(room) {
             currentRoom = room;
+            socket.send(JSON.stringify({ type: 'join', room: room, username: username }));
             document.getElementById('room-list').style.display = 'none';
-            document.getElementById('chat-interface').style.display = 'block';
-            document.getElementById('room-name').textContent = room;
-            document.getElementById('chat-box').innerHTML = '';
-            socket.send(JSON.stringify({ type: 'join', content: room, username: username }));
-        }
-
-        function displayChatMessage(message) {
-            const chatBox = document.getElementById('chat-box');
-            const messageElement = document.createElement('div');
-            messageElement.textContent = `${message.username}: ${message.content}`;
-            chatBox.appendChild(messageElement);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function displaySystemMessage(message) {
-            const chatBox = document.getElementById('chat-box');
-            const messageElement = document.createElement('div');
-            messageElement.textContent = message;
-            messageElement.style.fontStyle = 'italic';
-            chatBox.appendChild(messageElement);
-            chatBox.scrollTop = chatBox.scrollHeight;
+            document.getElementById('chat').style.display = 'block';
+            document.getElementById('room-name').textContent = `Room: ${room}`;
         }
 
         function sendMessage() {
             const messageInput = document.getElementById('message-input');
-            const message = messageInput.value;
+            const message = messageInput.value.trim();
             if (message) {
-                socket.send(JSON.stringify({ type: 'chat', content: message, room: currentRoom, username: username }));
+                socket.send(JSON.stringify({ type: 'message', room: currentRoom, content: message }));
                 messageInput.value = '';
             }
         }
 
-        document.getElementById('message-input').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
+        function displayMessage(data) {
+            const messagesDiv = document.getElementById('messages');
+            const messageElement = document.createElement('p');
+            messageElement.innerHTML = `<strong>${data.username}:</strong> ${data.content}`;
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        document.getElementById('message-input').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
                 sendMessage();
             }
         });

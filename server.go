@@ -2,108 +2,128 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"sync"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-const (
-	maxRooms       = 10
-	writeWait      = 10 * time.Second
-	pongWait       = 60 * time.Second
-	pingPeriod     = (pongWait * 9) / 10
-	maxMessageSize = 512
-)
-
-var (
-	upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
-	rooms = make(map[string]*Room)
-	mu    sync.Mutex
-)
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true // 允许所有来源，仅用于开发环境
+	},
+}
 
 type Client struct {
 	conn     *websocket.Conn
-	send     chan []byte
-	room     *Room
 	username string
-}
-
-type Room struct {
-	clients    map[*Client]bool
-	broadcast  chan []byte
-	register   chan *Client
-	unregister chan *Client
+	send     chan []byte
 }
 
 type Message struct {
 	Type     string `json:"type"`
-	Content  string `json:"content"`
-	Username string `json:"username"`
-	Room     string `json:"room,omitempty"`
+	Username string `json:"username,omitempty"`
+	Content  string `json:"content,omitempty"`
 }
 
-func newRoom() *Room {
-	return &Room{
-		broadcast:  make(chan []byte),
+type ChatRoom struct {
+	clients    map[*Client]bool
+	broadcast  chan Message
+	register   chan *Client
+	unregister chan *Client
+}
+
+func newChatRoom() *ChatRoom {
+	return &ChatRoom{
+		broadcast:  make(chan Message),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
 	}
 }
 
-func (c *Client) readPump() {
+func (cr *ChatRoom) run() {
+	for {
+		select {
+		case client := <-cr.register:
+			cr.clients[client] = true
+		case client := <-cr.unregister:
+			if _, ok := cr.clients[client]; ok {
+				delete(cr.clients, client)
+				close(client.send)
+			}
+		case message := <-cr.broadcast:
+			for client := range cr.clients {
+				select {
+				case client.send <- encodeMessage(message):
+				default:
+					close(client.send)
+					delete(cr.clients, client)
+				}
+			}
+		}
+	}
+}
+
+func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	chatRoom := globalChatRoom // 使用全局聊天室
+
+	// 等待客户端发送用户名
+	var msg Message
+	err = conn.ReadJSON(&msg)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	if msg.Type != "join" {
+		conn.Close()
+		return
+	}
+
+	client := &Client{conn: conn, username: msg.Username, send: make(chan []byte, 256)}
+	chatRoom.register <- client
+
+	go client.writePump(chatRoom)
+	client.readPump(chatRoom)
+}
+
+func (c *Client) readPump(cr *ChatRoom) {
 	defer func() {
-		c.room.unregister <- c
+		cr.unregister <- c
 		c.conn.Close()
 	}()
-	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+
 	for {
-		_, message, err := c.conn.ReadMessage()
+		var msg Message
+		err := c.conn.ReadJSON(&msg)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
 			}
 			break
 		}
-		var msg Message
-		if err := json.Unmarshal(message, &msg); err != nil {
-			log.Printf("error: %v", err)
-			continue
-		}
-		if msg.Type == "chat" && msg.Content == "/exit" {
-			c.room.unregister <- c
-			c.room = nil
-			c.send <- []byte(`{"type":"system","content":"You have left the room. Please choose another room."}`)
-		} else if c.room != nil {
-			msg.Username = c.username
-			jsonMessage, _ := json.Marshal(msg)
-			c.room.broadcast <- jsonMessage
-		}
+		msg.Username = c.username
+		cr.broadcast <- msg
 	}
 }
 
-func (c *Client) writePump() {
-	ticker := time.NewTicker(pingPeriod)
+func (c *Client) writePump(cr *ChatRoom) {
 	defer func() {
-		ticker.Stop()
 		c.conn.Close()
 	}()
+
 	for {
 		select {
 		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
@@ -115,82 +135,35 @@ func (c *Client) writePump() {
 			}
 			w.Write(message)
 
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				w.Write([]byte{'\n'})
-				w.Write(<-c.send)
-			}
-
 			if err := w.Close(); err != nil {
 				return
 			}
-		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				return
-			}
 		}
 	}
 }
 
-func handleConnections(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+func encodeMessage(msg Message) []byte {
+	encoded, err := json.Marshal(msg)
 	if err != nil {
-		log.Println(err)
-		return
+		log.Println("Error encoding message:", err)
+		return []byte{}
 	}
-
-	client := &Client{conn: conn, send: make(chan []byte, 256), username: r.URL.Query().Get("username")}
-
-	go client.writePump()
-
-	mu.Lock()
-	roomList := make([]string, 0, len(rooms))
-	for roomName := range rooms {
-		roomList = append(roomList, roomName)
-	}
-	mu.Unlock()
-
-	roomListMsg, _ := json.Marshal(Message{Type: "roomList", Content: "", Room: "", Username: ""})
-	client.send <- roomListMsg
-
-	client.readPump()
+	return encoded
 }
 
-func (r *Room) run() {
-	for {
-		select {
-		case client := <-r.register:
-			r.clients[client] = true
-		case client := <-r.unregister:
-			if _, ok := r.clients[client]; ok {
-				delete(r.clients, client)
-				close(client.send)
-			}
-		case message := <-r.broadcast:
-			for client := range r.clients {
-				select {
-				case client.send <- message:
-				default:
-					close(client.send)
-					delete(r.clients, client)
-				}
-			}
-		}
-	}
-}
+var globalChatRoom *ChatRoom
 
 func main() {
-	for i := 1; i <= maxRooms; i++ {
-		roomName := fmt.Sprintf("Room %d", i)
-		room := newRoom()
-		rooms[roomName] = room
-		go room.run()
-	}
+	globalChatRoom = newChatRoom()
+	go globalChatRoom.run()
 
-	http.HandleFunc("/ws", handleConnections)
+	http.HandleFunc("/ws", handleWebSocket)
 
-	log.Println("Server starting on :8080")
+	// 添加静态文件服务
+	fs := http.FileServer(http.Dir("client"))
+	http.Handle("/", fs)
+
+	log.Println("Server is starting on :8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
