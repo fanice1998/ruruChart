@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Chat</title>
+    <style>
+        #chat-box {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        #room-list {
+            display: none;
+        }
+
+        #chat-interface {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="username-input">
+        <input type="text" id="username" placeholder="Enter your username">
+        <button onclick="setUsername()">Set Username</button>
+    </div>
+    <div id="room-list">
+        <h2>Choose a room:</h2>
+        <ul id="rooms"></ul>
+    </div>
+    <div id="chat-interface">
+        <h2 id="room-name"></h2>
+        <div id="chat-box"></div>
+        <input type="text" id="message-input" placeholder="Type a message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        let socket;
+        let currentRoom = '';
+        let username = '';
+
+        function setUsername() {
+            username = document.getElementById('username').value;
+            if (username) {
+                document.getElementById('username-input').style.display = 'none';
+                connectWebSocket();
+            }
+        }
+
+        function connectWebSocket() {
+            socket = new WebSocket(`ws://localhost:8080/ws?username=${encodeURIComponent(username)}`);
+
+            socket.onopen = function (e) {
+                console.log("Connection established");
+            };
+
+            socket.onmessage = function (event) {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+
+            socket.onclose = function (event) {
+                if (event.wasClean) {
+                    console.log(`Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+                } else {
+                    console.log('Connection died');
+                }
+            };
+
+            socket.onerror = function (error) {
+                console.log(`[error] ${error.message}`);
+            };
+        }
+
+        function handleMessage(message) {
+            switch (message.type) {
+                case 'roomList':
+                    displayRoomList(message.content);
+                    break;
+                case 'chat':
+                    displayChatMessage(message);
+                    break;
+                case 'system':
+                    if (message.content === "You have left the room. Please choose another room.") {
+                        currentRoom = '';
+                        document.getElementById('chat-interface').style.display = 'none';
+                        document.getElementById('room-list').style.display = 'block';
+                    }
+                    displaySystemMessage(message.content);
+                    break;
+            }
+        }
+
+        function displayRoomList(rooms) {
+            const roomList = document.getElementById('rooms');
+            roomList.innerHTML = '';
+            rooms.forEach(room => {
+                const li = document.createElement('li');
+                const button = document.createElement('button');
+                button.textContent = room;
+                button.onclick = () => joinRoom(room);
+                li.appendChild(button);
+                roomList.appendChild(li);
+            });
+            document.getElementById('room-list').style.display = 'block';
+        }
+
+        function joinRoom(room) {
+            currentRoom = room;
+            document.getElementById('room-list').style.display = 'none';
+            document.getElementById('chat-interface').style.display = 'block';
+            document.getElementById('room-name').textContent = room;
+            document.getElementById('chat-box').innerHTML = '';
+            socket.send(JSON.stringify({ type: 'join', content: room, username: username }));
+        }
+
+        function displayChatMessage(message) {
+            const chatBox = document.getElementById('chat-box');
+            const messageElement = document.createElement('div');
+            messageElement.textContent = `${message.username}: ${message.content}`;
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function displaySystemMessage(message) {
+            const chatBox = document.getElementById('chat-box');
+            const messageElement = document.createElement('div');
+            messageElement.textContent = message;
+            messageElement.style.fontStyle = 'italic';
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value;
+            if (message) {
+                socket.send(JSON.stringify({ type: 'chat', content: message, room: currentRoom, username: username }));
+                messageInput.value = '';
+            }
+        }
+
+        document.getElementById('message-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+
+</html>
