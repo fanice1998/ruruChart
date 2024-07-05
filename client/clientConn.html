@@ -76,12 +76,41 @@
     </div>
 
     <script>
+        let socket;
         function login() {
             var account = document.getElementById('account').value;
             var password = document.getElementById('password').value;
             if (account && password) {
-                document.getElementById('loginPage').style.display = 'none';
-                document.getElementById('chatPage').style.display = 'block';
+                // 建立WebSocket連線
+                socket = new WebSocket('ws://192.168.66.137:8080/ws');
+                
+                socket.onopen = function (e) {
+                    console.log("WebSocket連線成功");
+                    // 發送登入訊息到伺服器
+                    socket.send(JSON.stringify({ type: 'login', account: account, password: password }));
+                }
+
+                socket.onmessage = function (e) {
+                    var message = JSON.parse(e.data);
+                    if (message.type === 'login_success') {
+                        document.getElementById('loginPage').style.display = 'none';
+                        document.getElementById('chatPage').style.display = 'block';
+                    } else if (message.type === "chat_ message") {
+                        addMessage(message.content);
+                    }
+                };
+
+                socket.onerror = function (e) {
+                    console.log("WebSocket連線失敗" + error.message);
+                };
+
+                socket.onclose = function (e) {
+                    if (e.wasClean) {
+                        console.log(`WebSocket連線關閉, code=${e.code} reason=${e.reason}`);
+                    } else {
+                        console.log("WebSocket連線關閉");
+                    }
+                }
             } else {
                 alert('請輸入帳號和密碼');
             }
@@ -89,12 +118,16 @@
 
         function sendMessage() {
             var message = document.getElementById('messageInput').value;
-            if (message) {
-                var chatBox = document.getElementById('chatBox');
-                chatBox.innerHTML += '<p>' + message + '</p>';
+            if (message && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: 'chat_message', content: message }));
                 document.getElementById('messageInput').value = '';
-                chatBox.scrollTop = chatBox.scrollHeight;
             }
+        }
+
+        function addMessage(message) {
+            var chatBox = document.getElementById('chatBox');
+            chatBox.innerHTML += '<p>' + message + '</p>';
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
 
         // 初始顯示登入頁面
