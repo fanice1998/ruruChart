@@ -55,6 +55,14 @@
             border: none;
             cursor: pointer;
         }
+        
+        .user-message {
+            color: green;
+        }
+
+        .other-message {
+            color: blue;
+        }
     </style>
 </head>
 
@@ -77,8 +85,9 @@
 
     <script>
         let socket;
+        var account;
         function login() {
-            var account = document.getElementById('account').value;
+            account = document.getElementById('account').value;
             var password = document.getElementById('password').value;
             if (account && password) {
                 // 建立WebSocket連線
@@ -95,8 +104,13 @@
                     if (message.type === 'login_success') {
                         document.getElementById('loginPage').style.display = 'none';
                         document.getElementById('chatPage').style.display = 'block';
-                    } else if (message.type === "chat_ message") {
-                        addMessage(message.content);
+                        document.getElementById('messageInput').addEventListener('keypress', function (e) {
+                            if (e.key === 'Enter') {
+                                sendMessage();
+                            }
+                        });
+                    } else if (message.type === "message") {
+                        addMessage(message.userMessage.account, message.userMessage.message);
                     }
                 };
 
@@ -119,14 +133,15 @@
         function sendMessage() {
             var message = document.getElementById('messageInput').value;
             if (message && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ type: 'chat_message', content: message }));
+                socket.send(JSON.stringify({ type: 'message', Message: {account: account, message:message} }));
                 document.getElementById('messageInput').value = '';
             }
         }
 
-        function addMessage(message) {
+        function addMessage(userAccount, message) {
             var chatBox = document.getElementById('chatBox');
-            chatBox.innerHTML += '<p>' + message + '</p>';
+            var messageClass = userAccount === account ? 'user-message' : 'other-message';
+            chatBox.innerHTML += '<p><strong class = "'+ messageClass +'">' + userAccount + ':</strong> ' + message + '</p>';
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
