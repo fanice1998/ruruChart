@@ -63,6 +63,11 @@
         .other-message {
             color: blue;
         }
+
+        .system-message {
+            color: gray;
+            font-style: italic;
+        }
     </style>
 </head>
 
@@ -70,7 +75,7 @@
     <div class="container">
         <div id="loginPage">
             <h2>登入</h2>
-            <input type="text" id="account" placeholder="Account" required>
+            <input type="text" id="username" placeholder="Username" required>
             <input type="password" id="password" placeholder="Password" required>
             <button onclick="login()">登入</button>
         </div>
@@ -85,23 +90,26 @@
 
     <script>
         let socket;
-        var account;
+        let UserName;
+        let jwt;
+
         function login() {
-            account = document.getElementById('account').value;
-            var password = document.getElementById('password').value;
-            if (account && password) {
+            UserName = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            if (username && password) {
                 // 建立WebSocket連線
-                socket = new WebSocket('ws://192.168.66.137:8080/ws');
+                socket = new WebSocket('ws://192.168.66.122:8080/ws');
                 
                 socket.onopen = function (e) {
                     console.log("WebSocket連線成功");
                     // 發送登入訊息到伺服器
-                    socket.send(JSON.stringify({ type: 'login', account: account, password: password }));
+                    socket.send(JSON.stringify({ username: UserName, password: password }));
                 }
 
                 socket.onmessage = function (e) {
-                    var message = JSON.parse(e.data);
-                    if (message.type === 'login_success') {
+                    const data = e.data;
+                    if (data.startsWith('eyJ')) {  // 假設JWT總是以'eyJ'開頭
+                        jwt = data;
                         document.getElementById('loginPage').style.display = 'none';
                         document.getElementById('chatPage').style.display = 'block';
                         document.getElementById('messageInput').addEventListener('keypress', function (e) {
@@ -109,39 +117,49 @@
                                 sendMessage();
                             }
                         });
-                    } else if (message.type === "message") {
-                        addMessage(message.userMessage.account, message.userMessage.message);
+                    } else {
+                        const message = JSON.parse(data);
+                        addMessage(message.username, message.content, message.type);
                     }
                 };
 
-                socket.onerror = function (e) {
-                    console.log("WebSocket連線失敗" + error.message);
+                socket.onerror = function (error) {
+                    console.log("WebSocket連線失敗: " + error.message);
                 };
 
                 socket.onclose = function (e) {
                     if (e.wasClean) {
                         console.log(`WebSocket連線關閉, code=${e.code} reason=${e.reason}`);
                     } else {
-                        console.log("WebSocket連線關閉");
+                        console.log("WebSocket連線意外關閉");
                     }
                 }
             } else {
-                alert('請輸入帳號和密碼');
+                alert('請輸入用戶名和密碼');
             }
         }
 
         function sendMessage() {
-            var message = document.getElementById('messageInput').value;
+            const message = document.getElementById('messageInput').value;
             if (message && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ type: 'message', Message: {account: account, message:message} }));
+                if (message.length > 512) {
+                    alert('訊息不能超過512個字符');
+                    return;
+                }
+                socket.send(JSON.stringify({ Content: message }));
                 document.getElementById('messageInput').value = '';
             }
         }
 
-        function addMessage(userAccount, message) {
-            var chatBox = document.getElementById('chatBox');
-            var messageClass = userAccount === account ? 'user-message' : 'other-message';
-            chatBox.innerHTML += '<p><strong class = "'+ messageClass +'">' + userAccount + ':</strong> ' + message + '</p>';
+        function addMessage(username, message, type) {
+            const chatBox = document.getElementById('chatBox');
+            let messageClass = 'other-message';
+            if (type === 'join' || type === 'leave') {
+                messageClass = 'system-message';
+            } else if (username === UserName) {
+                messageClass = 'user-message';
+            }
+            chatBox.innerHTML += `<p class="${messageClass}"><strong>${username}:</strong> ${message}</p>`;
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
