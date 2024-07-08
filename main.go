@@ -124,7 +124,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	register <- client
 
 	go client.writePump()
-	client.readPump()
+	go client.readPump()
 }
 
 func (c *Client) readPump() {
@@ -194,6 +194,7 @@ func handleMessages() {
 			mu.Lock()
 			clients[client] = true
 			mu.Unlock()
+			
 			for _, msg := range chatHistory {
 				select {
 				case client.send <- msg:
