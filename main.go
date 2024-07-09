@@ -20,7 +20,7 @@ var (
 	}
 	// clients     = make(map[*websocket.Conn]string)
 	clients     = make(map[*Client]bool)
-	broadcast   = make(chan Message)
+	broadcast   = make(chan Message, 1000)
 	register    = make(chan *Client)
 	unregister  = make(chan *Client)
 	mu          sync.Mutex
@@ -62,9 +62,11 @@ func main() {
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Remote IP: %s", r.RemoteAddr)
 	ws, err := upgrader.Upgrade(w, r, nil)
+	log.Printf("%s upgrade to websocket\n", r.RemoteAddr)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Error upgrading to WebSocket:", err)
 		return
 	}
 
@@ -76,6 +78,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !authenticateUser(creds.Username, creds.Password) {
+		log.Println("Authentication failed for user:", creds.Username)
 		ws.WriteMessage(websocket.TextMessage, []byte("Authentication failed"))
 		ws.Close()
 		return
@@ -130,6 +133,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 func (c *Client) readPump() {
 	defer func() {
 		unregister <- c
+		log.Printf("client %s left server....\n", c.username)
 		c.conn.Close()
 	}()
 
@@ -138,7 +142,7 @@ func (c *Client) readPump() {
 		err := c.conn.ReadJSON(&msg)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				log.Printf("Error reading message: %v", err)
 			}
 			break
 		}
@@ -149,7 +153,14 @@ func (c *Client) readPump() {
 
 		msg.Username = c.username
 		msg.Type = "message"
-		broadcast <- msg
+		log.Printf("Received message from %s: %s", c.username, msg.Content)
+		// broadcast <- msg
+		select {
+		case broadcast <- msg:
+			log.Printf("Message from %s sent to broadcast channel", c.username)
+		default:
+			log.Printf("Failed to send message from %s to broadcast channel", c.username)
+		}
 	}
 }
 
@@ -166,8 +177,10 @@ func (c *Client) writePump() {
 				return
 			}
 
+			log.Printf("Sending message to %s: %v", c.username, message)
 			err := c.conn.WriteJSON(message)
 			if err != nil {
+				log.Printf("Error sending message to %s: %v", c.username, err)
 				return
 			}
 		}
@@ -194,17 +207,18 @@ func handleMessages() {
 			mu.Lock()
 			clients[client] = true
 			mu.Unlock()
-			
+			log.Printf("New client registered: %s", client.username)
+
 			for _, msg := range chatHistory {
 				select {
 				case client.send <- msg:
 				default:
 					close(client.send)
 					delete(clients, client)
-					goto nextIteration
 				}
 			}
 			broadcast <- Message{Username: client.username, Content: "has joined the chat", Type: "join"}
+
 		case client := <-unregister:
 			mu.Lock()
 			if _, ok := clients[client]; ok {
@@ -212,9 +226,14 @@ func handleMessages() {
 				close(client.send)
 			}
 			mu.Unlock()
+
+			log.Printf("Client unregistered: %s", client.username)
 			broadcast <- Message{Username: client.username, Content: "has left the chat", Type: "leave"}
+
 		case message := <-broadcast:
+			log.Printf("Broadcasting message: %+v", message)
 			chatHistory = append(chatHistory, message)
+
 			mu.Lock()
 			for client := range clients {
 				select {
@@ -225,13 +244,14 @@ func handleMessages() {
 				}
 			}
 			mu.Unlock()
+
 		}
-	nextIteration:
 	}
 }
 
 func authenticateUser(username, password string) bool {
 	// 在實際應用中,這裡應該檢查數據庫或其他認證系統
+	log.Printf("Authenticating user: %s", username)
 	return true
 }
 
@@ -246,5 +266,6 @@ func generateJWT(username string) (string, error) {
 		return "", err
 	}
 
+	log.Printf("Generated JWT for user: %s", username)
 	return tokenString, nil
 }
