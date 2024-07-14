@@ -80,21 +80,21 @@ class _SigninPageState extends State<SigninPage> {
             size: 80,
             color: Colors.grey.shade800,
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           TextField(
             controller: _accountController,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               icon: Icon(Icons.account_box),
               labelText: 'Account',
               hintText: 'Enter your username or email',
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           TextField(
             controller: _passwordController,
             obscureText: _obscureText,
             decoration: InputDecoration(
-              icon: Icon(Icons.lock),
+              icon: const Icon(Icons.lock),
               labelText: 'Password',
               hintText: 'Enter your password',
               suffixIcon: IconButton(
@@ -109,7 +109,8 @@ class _SigninPageState extends State<SigninPage> {
             ),
             keyboardType: TextInputType.visiblePassword,
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
+          widget.isRegistering ? RegisterContainer() : ,
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -132,6 +133,50 @@ class _SigninPageState extends State<SigninPage> {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class RegisterContainer extends StatelessWidget {
+  const RegisterContainer({Key? key}) : super(key: key);
+
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: MediaQuery.of(context).size.width,
+      child: const Column(
+        children: [
+          TextField(
+            decoration: const InputDecoration(
+              icon: Icon(Icons.account_box),
+              labelText: 'Account',
+              hintText: 'Enter your username or email',
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class InputBoxContainer extends StatefulWidget {
+  final StatelessWidget curstomIcon;
+  final String labelText, hintText;
+  final bool isPassword;
+  InputBoxContainer({required this.curstomIcon, required this.labelText, required this.hintText, required this.isPassword});
+
+  @override
+  State<InputBoxContainer> createState() => _InputBoxContainer();
+  }
+
+class _InputBoxContainer extends State<InputBoxContainer> {
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      decoration: const InputDecoration(
+        icon: widget.curstomIcon,
+        labelText: 'Account',
+        hintText: 'Enter your username or email',
       ),
     );
   }
