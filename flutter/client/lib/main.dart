@@ -1,5 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+import 'package:client/loginPage/loginPage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,121 +15,53 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-       
-        colorScheme: ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 255, 255, 255)),
+        colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color.fromARGB(255, 255, 255, 255)),
         useMaterial3: true,
       ),
-      home: const HomePage(title: 'Note'),
+      home: StartPage(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.title});
-  final String title;
+class StartPage extends StatefulWidget {
+  const StartPage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePage();
+  State<StartPage> createState() => _StartPage();
 }
 
-class _HomePage extends State<HomePage> {
-
+class _StartPage extends State<StartPage> {
   @override
-  Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    bool isMobile = screenWidth < 600;
+  void initState() {
+    super.initState();
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-        actions: isMobile
-        ?[
-          Builder(
-            builder: (context) {
-              return IconButton(
-                icon: Icon(Icons.menu),
-                onPressed: () {
-                  Scaffold.of(context).openEndDrawer();
-                },
-                );
-            },
-          ),
-        ]
-        : null,
-      ),
-      endDrawer: isMobile
-      ? Drawer(
-        // 側邊收縮欄位
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              child: ListTile(
-                  leading: const Icon(Icons.menu),
-                title: const Text(
-                  'Menu',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 24,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              )
-            ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Home'),
-              onTap: () {
-                // 處理點擊事件
-                Navigator.pop(context);
-              }
-            ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Home'),
-              onTap: () {
-                // 處理點擊事件
-                Navigator.pop(context);
-              }
-            )
-          ],
-        ),
-      )
-      :null,
-      body: Expanded(
-        flex: 8,
-          child: ArticleFeatures(),
-        )
+    // 使用 Future.delayed 延遲三秒後執行
+    Future.delayed(Duration(seconds: 3), () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage()),
       );
+    });
   }
-}
 
-class ArticleFeatures extends StatelessWidget {
-  final List<Map<String, String>> items = [
-    {'name': 'Item 1', 'price': '\$10'},
-    {'name': 'Item 2', 'price': '\$10'},
-    {'name': 'Item 3', 'price': '\$10'},
-    {'name': 'Item 4', 'price': '\$10'},
-    {'name': 'Item 5', 'price': '\$10'},
-  ];
-
-  @override
   Widget build(BuildContext context) {
-    // TODO: implement build
-    return ListView.builder(
-      itemCount: items.length,
-      itemBuilder: (context, index){
-        return Card(
-          child: ListTile(
-            leading: const Icon(Icons.shopping_cart),
-            title: Text(items[index]['name']!),
-            subtitle: Text(items[index]['price']!),
-          ),
-        );
-      },
-      );
+    return Scaffold(
+        backgroundColor: Colors.grey.shade200,
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              width: MediaQuery.of(context).size.width,
+              height: 100,
+              color: Colors.amber.withAlpha(150),
+              child: const FittedBox(
+                  child: Text(
+                'Welcome to ruruChart',
+              )),
+            ),
+          ],
+        ));
   }
 }
