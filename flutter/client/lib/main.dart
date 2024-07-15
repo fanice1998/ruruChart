@@ -1,6 +1,5 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:client/loginPage/loginPage.dart';
+import 'package:client/loginPage/login_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,7 +18,7 @@ class MyApp extends StatelessWidget {
             seedColor: const Color.fromARGB(255, 255, 255, 255)),
         useMaterial3: true,
       ),
-      home: StartPage(),
+      home:const StartPage(),
     );
   }
 }
@@ -37,14 +36,15 @@ class _StartPage extends State<StartPage> {
     super.initState();
 
     // 使用 Future.delayed 延遲三秒後執行
-    Future.delayed(Duration(seconds: 3), () {
+    Future.delayed(const Duration(seconds: 3), () {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => LoginPage()),
+        MaterialPageRoute(builder: (context) => const LoginPage()),
       );
     });
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: Colors.grey.shade200,
