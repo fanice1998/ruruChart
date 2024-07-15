@@ -81,6 +81,8 @@ class _SigninPageState extends State<SigninPage> {
             color: Colors.grey.shade800,
           ),
           const SizedBox(height: 20),
+          widget.isRegistering ? RegisterContainer() : Column(
+            children: [
           TextField(
             controller: _accountController,
             decoration: const InputDecoration(
@@ -109,8 +111,9 @@ class _SigninPageState extends State<SigninPage> {
             ),
             keyboardType: TextInputType.visiblePassword,
           ),
+            ],
+          ),
           const SizedBox(height: 20),
-          widget.isRegistering ? RegisterContainer() : ,
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -146,38 +149,53 @@ class RegisterContainer extends StatelessWidget {
       width: MediaQuery.of(context).size.width,
       child: const Column(
         children: [
-          TextField(
-            decoration: const InputDecoration(
-              icon: Icon(Icons.account_box),
-              labelText: 'Account',
-              hintText: 'Enter your username or email',
-            ),
-          )
+          InputBoxContainer(customIcon: Icon(Icons.account_box), labelText: "Account", hintText: "Enter your account"),
+          InputBoxContainer(customIcon: Icon(Icons.email), labelText: "Email", hintText: "Enter your email"),
+          InputBoxContainer(customIcon: Icon(Icons.lock), labelText: "Password", hintText: "Enter your password"),
+          InputBoxContainer(customIcon: Icon(Icons.password), labelText: "Check password", hintText: "Check your password")
         ],
       ),
     );
   }
 }
 
-class InputBoxContainer extends StatefulWidget {
-  final StatelessWidget curstomIcon;
-  final String labelText, hintText;
+class InputBoxContainer extends StatelessWidget {
+  final Widget customIcon;
+  final String labelText;
+  final String hintText;
   final bool isPassword;
-  InputBoxContainer({required this.curstomIcon, required this.labelText, required this.hintText, required this.isPassword});
+  final TextEditingController? controller;
 
-  @override
-  State<InputBoxContainer> createState() => _InputBoxContainer();
-  }
+  const InputBoxContainer({
+    Key? key,
+    required this.customIcon,
+    required this.labelText,
+    required this.hintText,
+    this.isPassword = false,
+    this.controller,
+  }) : super(key: key);
 
-class _InputBoxContainer extends State<InputBoxContainer> {
   @override
   Widget build(BuildContext context) {
     return TextField(
-      decoration: const InputDecoration(
-        icon: widget.curstomIcon,
-        labelText: 'Account',
-        hintText: 'Enter your username or email',
+      controller: controller,
+      obscureText: isPassword,
+      decoration: InputDecoration(
+        icon: customIcon,
+        labelText: labelText,
+        hintText: hintText,
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  isPassword ? Icons.visibility : Icons.visibility_off,
+                ),
+                onPressed: () {
+                  // 如果需要切换密码可见性，你需要在父widget中处理这个逻辑
+                },
+              )
+            : null,
       ),
     );
   }
 }
+
