@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 
 class LoginPage extends StatefulWidget {
-
   const LoginPage({
     super.key,
   });
@@ -34,7 +33,8 @@ class LoginPageState extends State<LoginPage> {
               children: [
                 Text(
                   _isRegistering ? 'R e g i s t e r' : 'L o g i n',
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
                 SigninPage(
@@ -55,10 +55,10 @@ class SigninPage extends StatefulWidget {
   final ValueChanged<bool> onRegisterChanged;
 
   const SigninPage({
-    required this.isRegistering, 
+    required this.isRegistering,
     required this.onRegisterChanged,
     super.key,
-    });
+  });
 
   @override
   SigninPageState createState() => SigninPageState();
@@ -69,16 +69,18 @@ class SigninPageState extends State<SigninPage> {
   final TextEditingController _accountController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   bool _obscureText = true;
 
-    void _cleanController() {
+  void _cleanController() {
     setState(() {
       _accountController.text = "";
       _passwordController.text = "";
       _emailController.text = "";
       _confirmPasswordController.text = "";
-      logger.d("Account: ${_accountController.text} \nPassword: ${_passwordController.text} \nEmail: ${_emailController.text} \n_ConfirmPassword: ${_confirmPasswordController.text}");
+      logger.d(
+          "Account: ${_accountController.text} \nPassword: ${_passwordController.text} \nEmail: ${_emailController.text} \n_ConfirmPassword: ${_confirmPasswordController.text}");
     });
   }
 
@@ -91,18 +93,33 @@ class SigninPageState extends State<SigninPage> {
     super.dispose();
   }
 
+  bool checkAccount(String account) {
+    if (account.isEmpty) {
+      logger.d("Account is empty");
+      return false;
+    } else if (account.length > 10 && account.contains("@")) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   void login() {
-    logger.d("Account: ${_accountController.text}\nPassword: ${_passwordController.text}");
+    logger.d(
+        "Account: ${_accountController.text}\nPassword: ${_passwordController.text}");
   }
 
   void register() {
-    logger.d("Account: ${_accountController.text} \nPassword: ${_passwordController.text} \nEmail: ${_emailController.text} \nConfirmPassword: ${_confirmPasswordController.text}");
+    logger.d(
+        "Account: ${_accountController.text} \nPassword: ${_passwordController.text} \nEmail: ${_emailController.text} \nConfirmPassword: ${_confirmPasswordController.text}");
     if (_passwordController.text == _confirmPasswordController.text) {
-      logger.d("Password: ${_passwordController.text} \nConfirmPassword: ${_confirmPasswordController.text} \nConfirmPassword: true");
+      logger.d(
+          "Password: ${_passwordController.text} \nConfirmPassword: ${_confirmPasswordController.text} \nConfirmPassword: true");
       // 進行註冊
-    }else{
+    } else {
       // 請確認密碼是否正確
-      logger.d("Password: ${_passwordController.text} \nConfirmPassword: ${_confirmPasswordController.text} \nPlease check your password!!!");
+      logger.d(
+          "Password: ${_passwordController.text} \nConfirmPassword: ${_confirmPasswordController.text} \nPlease check your password!!!");
     }
   }
 
@@ -125,24 +142,55 @@ class SigninPageState extends State<SigninPage> {
             color: Colors.grey.shade800,
           ),
           const SizedBox(height: 20),
-          widget.isRegistering ? 
-          // RegisterContainer() 
-          Column(
-            children: [
-              const SizedBox(height: 10),
-              InputBoxContainer(customIcon: const Icon(Icons.account_box), labelText: "Account", hintText: "Enter your account", controller: _accountController),
-              InputBoxContainer(customIcon: const Icon(Icons.email), labelText: "Email", hintText: "Enter your email", controller: _emailController),
-              InputBoxContainer(customIcon: const Icon(Icons.lock), labelText: "Password", hintText: "Enter your password", isPassword: true, controller: _passwordController),
-              InputBoxContainer(customIcon: const Icon(Icons.password), labelText: "Check password", hintText: "Check your password", isPassword: true, controller: _confirmPasswordController),
-            ],
-          )
-          : Column(
-            children: [
-              const SizedBox(height: 10),
-              InputBoxContainer(customIcon: const Icon(Icons.account_box), labelText: "Account", hintText: "Enter your username or email", controller: _accountController,),
-              InputBoxContainer(customIcon: const Icon(Icons.lock), labelText: "Password", hintText: "Enter your password", isPassword: true, controller: _passwordController, onVisibilityToggle: _togglePasswordVisibility,),
-            ],
-          ),
+          widget.isRegistering
+              ?
+              // RegisterContainer()
+              Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    InputBoxContainer(
+                        customIcon: const Icon(Icons.account_box),
+                        labelText: "Account",
+                        hintText: "Enter your account",
+                        controller: _accountController),
+                    InputBoxContainer(
+                        customIcon: const Icon(Icons.email),
+                        labelText: "Email",
+                        hintText: "Enter your email",
+                        controller: _emailController),
+                    InputBoxContainer(
+                        customIcon: const Icon(Icons.lock),
+                        labelText: "Password",
+                        hintText: "Enter your password",
+                        isPassword: true,
+                        controller: _passwordController),
+                    InputBoxContainer(
+                        customIcon: const Icon(Icons.password),
+                        labelText: "Check password",
+                        hintText: "Check your password",
+                        isPassword: true,
+                        controller: _confirmPasswordController),
+                  ],
+                )
+              : Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    InputBoxContainer(
+                      customIcon: const Icon(Icons.account_box),
+                      labelText: "Account",
+                      hintText: "Enter your username or email",
+                      controller: _accountController,
+                    ),
+                    InputBoxContainer(
+                      customIcon: const Icon(Icons.lock),
+                      labelText: "Password",
+                      hintText: "Enter your password",
+                      isPassword: true,
+                      controller: _passwordController,
+                      onVisibilityToggle: _togglePasswordVisibility,
+                    ),
+                  ],
+                ),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -150,9 +198,7 @@ class SigninPageState extends State<SigninPage> {
               ElevatedButton(
                 child: Text(widget.isRegistering ? 'Register' : 'Login'),
                 onPressed: () {
-                  widget.isRegistering 
-                  ?register()
-                  :login();
+                  widget.isRegistering ? register() : login();
                   // 在这里添加登录或注册逻辑
                 },
               ),
@@ -214,4 +260,3 @@ class InputBoxContainer extends StatelessWidget {
     );
   }
 }
-
