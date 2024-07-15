@@ -91,6 +91,21 @@ class SigninPageState extends State<SigninPage> {
     super.dispose();
   }
 
+  void login() {
+    logger.d("Account: ${_accountController.text}\nPassword: ${_passwordController.text}");
+  }
+
+  void register() {
+    logger.d("Account: ${_accountController.text} \nPassword: ${_passwordController.text} \nEmail: ${_emailController.text} \nConfirmPassword: ${_confirmPasswordController.text}");
+    if (_passwordController.text == _confirmPasswordController.text) {
+      logger.d("Password: ${_passwordController.text} \nConfirmPassword: ${_confirmPasswordController.text} \nConfirmPassword: true");
+      // 進行註冊
+    }else{
+      // 請確認密碼是否正確
+      logger.d("Password: ${_passwordController.text} \nConfirmPassword: ${_confirmPasswordController.text} \nPlease check your password!!!");
+    }
+  }
+
   void _togglePasswordVisibility() {
     setState(() {
       _obscureText = !_obscureText;
@@ -116,8 +131,8 @@ class SigninPageState extends State<SigninPage> {
             children: [
               const SizedBox(height: 10),
               InputBoxContainer(customIcon: const Icon(Icons.account_box), labelText: "Account", hintText: "Enter your account", controller: _accountController),
-              InputBoxContainer(customIcon: const Icon(Icons.email), labelText: "Email", hintText: "Enter your email", controller: _passwordController),
-              InputBoxContainer(customIcon: const Icon(Icons.lock), labelText: "Password", hintText: "Enter your password", isPassword: true, controller: _emailController),
+              InputBoxContainer(customIcon: const Icon(Icons.email), labelText: "Email", hintText: "Enter your email", controller: _emailController),
+              InputBoxContainer(customIcon: const Icon(Icons.lock), labelText: "Password", hintText: "Enter your password", isPassword: true, controller: _passwordController),
               InputBoxContainer(customIcon: const Icon(Icons.password), labelText: "Check password", hintText: "Check your password", isPassword: true, controller: _confirmPasswordController),
             ],
           )
@@ -135,11 +150,9 @@ class SigninPageState extends State<SigninPage> {
               ElevatedButton(
                 child: Text(widget.isRegistering ? 'Register' : 'Login'),
                 onPressed: () {
-                  logger.d("Account: ${_accountController.text}");
-                  logger.d("Password: ${_passwordController.text}");
                   widget.isRegistering 
-                  ?logger.d("Account: ${_accountController.text} \nPassword: ${_passwordController.text} \nEmail: ${_emailController.text} \n_ConfirmPassword: ${_confirmPasswordController.text}")
-                  :logger.d("Account: ${_accountController.text}\nPassword: ${_passwordController.text}");
+                  ?register()
+                  :login();
                   // 在这里添加登录或注册逻辑
                 },
               ),
