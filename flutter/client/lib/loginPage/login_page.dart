@@ -1,3 +1,4 @@
+import 'package:client/homePage/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 
@@ -79,6 +80,7 @@ class SigninPageState extends State<SigninPage> {
       _passwordController.text = "";
       _emailController.text = "";
       _confirmPasswordController.text = "";
+      _obscureText = true;
       logger.d(
           "Account: ${_accountController.text} \nPassword: ${_passwordController.text} \nEmail: ${_emailController.text} \n_ConfirmPassword: ${_confirmPasswordController.text}");
     });
@@ -94,10 +96,13 @@ class SigninPageState extends State<SigninPage> {
   }
 
   bool checkAccount(String account) {
+    String accountPattern = r'^[a-zA-z0-9._%+-]+@[a-zA-z0-9.-]+\.[a-zA-z]{2,}$';
+    RegExp regExp = RegExp(accountPattern);
+
     if (account.isEmpty) {
       logger.d("Account is empty");
       return false;
-    } else if (account.length > 10 && account.contains("@")) {
+    } else if (account.length > 10 && account.contains("@") && regExp.hasMatch(account)) {
       return true;
     } else {
       return false;
@@ -105,8 +110,14 @@ class SigninPageState extends State<SigninPage> {
   }
 
   void login() {
+    if (checkAccount(_accountController.text)) {
+      logger.d("Login Access !!!");
+      Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
+    }else {
     logger.d(
-        "Account: ${_accountController.text}\nPassword: ${_passwordController.text}");
+        "Account: ${_accountController.text}\nPassword: ${_passwordController.text}",
+        );
+        }
   }
 
   void register() {
@@ -163,13 +174,17 @@ class SigninPageState extends State<SigninPage> {
                         labelText: "Password",
                         hintText: "Enter your password",
                         isPassword: true,
-                        controller: _passwordController),
+                        controller: _passwordController,
+                        obscureText: _obscureText,
+                        onVisibilityToggle: _togglePasswordVisibility,),
                     InputBoxContainer(
                         customIcon: const Icon(Icons.password),
                         labelText: "Check password",
                         hintText: "Check your password",
                         isPassword: true,
-                        controller: _confirmPasswordController),
+                        controller: _confirmPasswordController,
+                        obscureText: _obscureText,
+                        onVisibilityToggle: _togglePasswordVisibility,),
                   ],
                 )
               : Column(
@@ -187,6 +202,7 @@ class SigninPageState extends State<SigninPage> {
                       hintText: "Enter your password",
                       isPassword: true,
                       controller: _passwordController,
+                      obscureText: _obscureText,
                       onVisibilityToggle: _togglePasswordVisibility,
                     ),
                   ],
