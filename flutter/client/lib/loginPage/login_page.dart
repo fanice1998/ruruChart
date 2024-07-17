@@ -118,7 +118,7 @@ class SigninPageState extends State<SigninPage> {
   void login() {
     if (checkAccount(_accountController.text)) {
       logger.d("Login Access !!!");
-      Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomePage()),);
     }else {
     logger.d(
         "Account: ${_accountController.text}\nPassword: ${_passwordController.text}",
