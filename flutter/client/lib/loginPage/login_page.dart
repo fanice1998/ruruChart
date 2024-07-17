@@ -70,9 +70,15 @@ class SigninPageState extends State<SigninPage> {
   final TextEditingController _accountController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   bool _obscureText = true;
+
+  @override
+  void initState() {
+    _accountController.text = "admin@example.com";
+    _passwordController.text = "password";
+    super.initState();
+  }
 
   void _cleanController() {
     setState(() {
