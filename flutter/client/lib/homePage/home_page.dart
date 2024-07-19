@@ -1,35 +1,45 @@
-import 'dart:ffi';
 import 'dart:ui';
 
 import 'package:circle_nav_bar/circle_nav_bar.dart';
+import 'package:client/homePage/msgPage/msg_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({Key? key}): super(key: key);
+
+  @override
+  State<HomePage> createState() => _HomePage();
+}
+
+class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin{
+  // const _HomePage({super.key});
+  int _tabIndex = 1;
+  int get tabIndex => _tabIndex;
+  set tabIndex (int v) {
+    _tabIndex = v; 
+    setState(() {});
+  }
+
+  late PageController pageController;
+
+  void _upTabIndex(int value) {
+    setState(() {
+      tabIndex = value;
+      pageController.jumpToPage(tabIndex);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    pageController = PageController(initialPage: _tabIndex);
+  }
+
   // appBar 需要使用 automaticallyImplyLeading: false 禁用返回按鈕
   @override
   Widget build(BuildContext context){
-    // return DefaultTabController(
-    //   length: 3, 
-    //   child: Scaffold(
-    //     appBar: AppBar(
-    //       automaticallyImplyLeading: false,
-    //       title: const Text("test1 appbar"),
-    //       bottom: const TabBar(tabs: [
-    //           Tab(icon: Icon(Icons.directions_car), text: 'Car'),
-    //           Tab(icon: Icon(Icons.directions_transit), text: 'Transit'),
-    //           Tab(icon: Icon(Icons.directions_bike), text: 'Bike'),
-    //       ],),),
-    //       body: const TabBarView(
-    //         children: [
-    //         Center(child: Text('Car Page')),
-    //         Center(child: Text('Transit Page')),
-    //         Center(child: Text('Bike Page')),
-    //         ],
-    //       ),
-    //     ));
     return Scaffold(
       // AppBarrrrr
       appBar: AppBar(
@@ -37,7 +47,17 @@ class HomePage extends StatelessWidget {
         automaticallyImplyLeading: false,
       ),
       // Bodyyyyyyyyy
-      body: const Center(child: Text("HaHa")),
+      body: PageView(
+        controller: pageController,
+        onPageChanged: (v){
+          tabIndex = v;
+        },children: [
+            // Container(width: double.infinity, height: double.infinity, color: Colors.red),
+            MsgPage(),
+            Container(width: double.infinity, height: double.infinity, color: Colors.green),
+            Container(width: double.infinity, height: double.infinity, color: Colors.blue),
+        ],
+      ),
       // floatingActionButton
       // floatingActionButton: CircleButton(onTap: () {
       //   print("Home");
@@ -48,37 +68,35 @@ class HomePage extends StatelessWidget {
       // floatingActionButtonLocation
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       // bottomNavigationBar
-      bottomNavigationBar: RadiusBottomNav(tabIndex2: 1),
+      bottomNavigationBar: RadiusBottomNav(
+        upTabIndex: _upTabIndex,
+        tabIndex: tabIndex,
+        ),
     );
   }
 }
 
 class RadiusBottomNav extends StatefulWidget{
-  int tabIndex2;
-  const RadiusBottomNav({
-    Key? key, 
-    required this.tabIndex2,
-    }): super(key: key);
+  final Function(int) upTabIndex;
+  final int tabIndex;
+  RadiusBottomNav({
+    required this.upTabIndex,
+    required this.tabIndex,
+    }):super();
+  // int tabIndex;
 
   @override
   State<RadiusBottomNav> createState() => _RadiusBottomNav();
 }
 
 class _RadiusBottomNav extends State<RadiusBottomNav> with SingleTickerProviderStateMixin{
-  // int tabIndex2;
-  int get tabIndex => tabIndex2;
-  set tabIndex(int v) {
-    tabIndex2 = v;
-    setState(() {});
-  }
+  // late PageController pageController;
 
-  late PageController pageController;
-
-  @override
-  void initState(){
-    super.initState();
-    pageController = PageController( initialPage: tabIndex2);
-  }
+  // @override
+  // void initState(){
+  //   super.initState();
+  //   pageController = PageController(initialPage: _tabIndex);
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -112,10 +130,11 @@ class _RadiusBottomNav extends State<RadiusBottomNav> with SingleTickerProviderS
         circleColor: Colors.white,
         height: 60,
         circleWidth: 60,
-        activeIndex: tabIndex,
+        activeIndex: widget.tabIndex,
         onTap: (index) {
-          tabIndex = index;
-          pageController.jumpToPage(tabIndex);
+          // tabIndex = index;
+          // pageController.jumpToPage(tabIndex);
+          widget.upTabIndex(index);
         },
         padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
         cornerRadius: const BorderRadius.only(
