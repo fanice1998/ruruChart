@@ -16,14 +16,16 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color.fromARGB(255, 255, 255, 255)),
+          seedColor: Colors.brown,
+          brightness: Brightness.dark,
+        ),
         useMaterial3: true,
       ),
-      home:const StartPage(),
+      home: const StartPage(),
       initialRoute: "/",
       routes: {
-        '/home' : (context) => const HomePage(),
-        '/login' : (context) => const LoginPage(),
+        '/home': (context) => const HomePage(),
+        '/login': (context) => const LoginPage(),
       },
     );
   }
@@ -53,21 +55,21 @@ class _StartPage extends State<StartPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.grey.shade200,
+        // backgroundColor: Colors.grey.shade200,
         body: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              width: MediaQuery.of(context).size.width,
-              height: 100,
-              color: Colors.amber.withAlpha(150),
-              child: const FittedBox(
-                  child: Text(
-                'Welcome to ruruChart',
-              )),
-            ),
-          ],
-        ));
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          width: MediaQuery.of(context).size.width,
+          height: 100,
+          color: Colors.amber.withAlpha(150),
+          child: const FittedBox(
+              child: Text(
+            'Welcome to ruruChart',
+          )),
+        ),
+      ],
+    ));
   }
 }

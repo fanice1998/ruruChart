@@ -25,7 +25,7 @@ class LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade200,
+      // backgroundColor: Colors.grey.shade200,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -70,7 +70,8 @@ class SigninPageState extends State<SigninPage> {
   final TextEditingController _accountController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   bool _obscureText = true;
 
   @override
@@ -108,7 +109,9 @@ class SigninPageState extends State<SigninPage> {
     if (account.isEmpty) {
       logger.d("Account is empty");
       return false;
-    } else if (account.length > 10 && account.contains("@") && regExp.hasMatch(account)) {
+    } else if (account.length > 10 &&
+        account.contains("@") &&
+        regExp.hasMatch(account)) {
       return true;
     } else {
       return false;
@@ -118,12 +121,15 @@ class SigninPageState extends State<SigninPage> {
   void login() {
     if (checkAccount(_accountController.text)) {
       logger.d("Login Access !!!");
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomePage()),);
-    }else {
-    logger.d(
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    } else {
+      logger.d(
         "Account: ${_accountController.text}\nPassword: ${_passwordController.text}",
-        );
-        }
+      );
+    }
   }
 
   void register() {
@@ -176,21 +182,23 @@ class SigninPageState extends State<SigninPage> {
                         hintText: "Enter your email",
                         controller: _emailController),
                     InputBoxContainer(
-                        customIcon: const Icon(Icons.lock),
-                        labelText: "Password",
-                        hintText: "Enter your password",
-                        isPassword: true,
-                        controller: _passwordController,
-                        obscureText: _obscureText,
-                        onVisibilityToggle: _togglePasswordVisibility,),
+                      customIcon: const Icon(Icons.lock),
+                      labelText: "Password",
+                      hintText: "Enter your password",
+                      isPassword: true,
+                      controller: _passwordController,
+                      obscureText: _obscureText,
+                      onVisibilityToggle: _togglePasswordVisibility,
+                    ),
                     InputBoxContainer(
-                        customIcon: const Icon(Icons.password),
-                        labelText: "Check password",
-                        hintText: "Check your password",
-                        isPassword: true,
-                        controller: _confirmPasswordController,
-                        obscureText: _obscureText,
-                        onVisibilityToggle: _togglePasswordVisibility,),
+                      customIcon: const Icon(Icons.password),
+                      labelText: "Check password",
+                      hintText: "Check your password",
+                      isPassword: true,
+                      controller: _confirmPasswordController,
+                      obscureText: _obscureText,
+                      onVisibilityToggle: _togglePasswordVisibility,
+                    ),
                   ],
                 )
               : Column(
